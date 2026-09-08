@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Lärmampel</title>
+<style>
+:root{
+  --raum:#16232b;
+  --raum-tief:#0e181e;
+  --gehaeuse:#2c343b;
+  --gehaeuse-kante:#3f4952;
+  --schrift:#e8eef1;
+  --schrift-leise:#8ba0ab;
+  --gruen:#2fa054;
+  --gelb:#f0a81c;
+  --rot:#dd3B34;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  background:radial-gradient(120% 90% at 50% 0%,#1d2e38 0%,var(--raum) 45%,var(--raum-tief) 100%);
+  color:var(--schrift);
+  font-family:"Avenir Next Condensed","Avenir Next","Segoe UI",system-ui,sans-serif;
+  overflow:hidden;
+  -webkit-user-select:none;user-select:none;
+  touch-action:manipulation;
+}
+.buehne{
+  height:100dvh;
+  display:flex;align-items:center;justify-content:center;
+  gap:clamp(20px,4vw,64px);
+  padding:clamp(12px,3vh,32px) clamp(16px,4vw,48px);
+}
+
+/* Ampel */
+.mast{display:flex;flex-direction:column;align-items:center;height:100%;justify-content:center}
+.gehaeuse{
+  background:linear-gradient(160deg,var(--gehaeuse-kante),var(--gehaeuse) 30%,#20272d);
+  border-radius:clamp(18px,3vh,34px);
+  padding:clamp(12px,2.4vh,26px);
+  display:flex;flex-direction:column;gap:clamp(10px,2.2vh,24px);
+  box-shadow:0 2px 0 rgba(255,255,255,.09) inset,0 -3px 0 rgba(0,0,0,.5) inset,0 30px 60px rgba(0,0,0,.55);
+}
+.lampe{
+  width:clamp(76px,22vh,190px);height:clamp(76px,22vh,190px);
+  border-radius:50%;
+  background:#141a1f;
+  box-shadow:0 6px 14px rgba(0,0,0,.7) inset,0 1px 0 rgba(255,255,255,.06);
+  transition:background .18s linear,box-shadow .18s linear;
+}
+.lampe.an[data-farbe=gruen]{
+  background:radial-gradient(circle at 38% 32%,#8ee7a9,var(--gruen) 55%,#1c6b38);
+  box-shadow:0 0 clamp(24px,5vh,60px) rgba(47,160,84,.75),0 0 0 2px rgba(255,255,255,.12) inset;
+}
+.lampe.an[data-farbe=gelb]{
+  background:radial-gradient(circle at 38% 32%,#ffe08a,var(--gelb) 55%,#a86f06);
+  box-shadow:0 0 clamp(24px,5vh,60px) rgba(240,168,28,.8),0 0 0 2px rgba(255,255,255,.14) inset;
+}
+.lampe.an[data-farbe=rot]{
+  background:radial-gradient(circle at 38% 32%,#ff9d97,var(--rot) 55%,#8d1f1a);
+  box-shadow:0 0 clamp(24px,5vh,60px) rgba(221,59,52,.8),0 0 0 2px rgba(255,255,255,.14) inset;
+}
+.fuss{width:clamp(16px,2.2vh,26px);height:clamp(20px,5vh,60px);background:linear-gradient(90deg,#242b31,#39424a,#242b31);border-radius:0 0 4px 4px}
+
+/* Pegelsäule */
+.saeule{
+  position:relative;
+  width:clamp(30px,5vw,54px);
+  height:clamp(200px,62vh,520px);
+  background:#101a20;
+  border-radius:999px;
+  box-shadow:0 4px 12px rgba(0,0,0,.6) inset;
+  overflow:hidden;
+}
+.fuellung{
+  position:absolute;left:0;right:0;bottom:0;height:0%;
+  background:linear-gradient(0deg,#2fa054,#6fc45f 55%,#f0a81c 78%,#dd3b34 100%);
+  opacity:.9;
+  transition:height .12s linear;
+}
+.spitze{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.85);transition:bottom .06s linear}
+.marke{position:absolute;left:-6px;right:-6px;height:3px;border-radius:2px}
+.marke.gelb{background:var(--gelb)}
+.marke.rot{background:var(--rot)}
+
+/* Anzeige */
+.anzeige{display:flex;flex-direction:column;gap:clamp(14px,3vh,34px);min-width:clamp(200px,26vw,340px)}
+.zaehlerblock{line-height:.86}
+.zaehler{
+  font-size:clamp(78px,22vh,210px);font-weight:700;
+  font-variant-numeric:tabular-nums;letter-spacing:-.03em;
+  display:block;
+}
+.zaehler.puls{animation:puls .5s ease-out}
+@keyframes puls{0%{transform:scale(1);color:var(--schrift)}25%{transform:scale(1.12);color:var(--rot)}100%{transform:scale(1);color:var(--schrift)}}
+.beschriftung{font-size:clamp(15px,2.4vh,24px);color:var(--schrift-leise);margin-top:.5em;letter-spacing:.01em}
+.hinweis{font-size:clamp(14px,2.1vh,20px);color:var(--schrift-leise);max-width:22ch;line-height:1.45;min-height:2.9em}
+.werte{font-size:clamp(13px,1.8vh,17px);color:var(--schrift-leise);font-variant-numeric:tabular-nums}
+
+/* Bedienelemente */
+button{
+  font:inherit;color:var(--schrift);
+  background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:12px;padding:.62em 1.05em;
+  font-size:clamp(14px,2vh,18px);cursor:pointer;
+}
+button:active{background:rgba(255,255,255,.16)}
+button:focus-visible{outline:3px solid #7fd0ff;outline-offset:2px}
+.knopfreihe{display:flex;gap:10px;flex-wrap:wrap}
+.zahnrad{position:fixed;top:max(12px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));width:46px;height:46px;padding:0;font-size:20px;border-radius:50%;z-index:5}
+
+/* Startschirm */
+.start{
+  position:fixed;inset:0;z-index:20;
+  background:rgba(10,18,23,.94);backdrop-filter:blur(6px);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;
+  padding:24px;text-align:center;
+}
+.start h1{font-size:clamp(30px,6vh,54px);font-weight:600;letter-spacing:-.01em}
+.start p{color:var(--schrift-leise);font-size:clamp(15px,2.3vh,20px);max-width:34ch;line-height:1.5}
+.start button{background:var(--gruen);border-color:transparent;font-size:clamp(18px,2.8vh,24px);padding:.7em 1.6em}
+.fehler{color:#ffb4ae;font-size:clamp(14px,2vh,18px);max-width:36ch;line-height:1.45}
+
+/* Einstellungen */
+.einstellungen{
+  position:fixed;left:0;right:0;bottom:0;z-index:15;
+  background:#1a252c;border-top:1px solid rgba(255,255,255,.12);
+  padding:20px clamp(16px,4vw,40px) max(20px,env(safe-area-inset-bottom));
+  display:grid;gap:16px;
+  transform:translateY(101%);transition:transform .25s ease;
+  box-shadow:0 -20px 50px rgba(0,0,0,.5);
+}
+.einstellungen.offen{transform:translateY(0)}
+.regler{display:grid;grid-template-columns:1fr auto;gap:8px 14px;align-items:center}
+.regler label{font-size:clamp(14px,2vh,18px)}
+.regler input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--gelb);height:30px}
+.regler.rot input[type=range]{accent-color:var(--rot)}
+.wert{font-variant-numeric:tabular-nums;color:var(--schrift-leise)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (orientation:portrait){
+  .buehne{flex-direction:column;gap:18px}
+  .saeule{height:clamp(120px,22vh,220px)}
+  .anzeige{align-items:center;text-align:center}
+}
+</style>
+</head>
+<body>
+
+<div class="buehne">
+  <div class="mast">
+    <div class="gehaeuse">
+      <div class="lampe" data-farbe="rot" id="lRot"></div>
+      <div class="lampe" data-farbe="gelb" id="lGelb"></div>
+      <div class="lampe" data-farbe="gruen" id="lGruen"></div>
+    </div>
+    <div class="fuss"></div>
+  </div>
+
+  <div class="saeule">
+    <div class="fuellung" id="fuellung"></div>
+    <div class="spitze" id="spitze"></div>
+    <div class="marke gelb" id="markeGelb"></div>
+    <div class="marke rot" id="markeRot"></div>
+  </div>
+
+  <div class="anzeige">
+    <div class="zaehlerblock">
+      <span class="zaehler" id="zaehler">0</span>
+      <span class="beschriftung">rote Phasen</span>
+    </div>
+    <p class="hinweis" id="hinweis">Die Ampel misst noch.</p>
+    <p class="werte" id="werte">Pegel 0</p>
+  </div>
+</div>
+
+<button class="zahnrad" id="btnEinstellungen" aria-label="Einstellungen öffnen">⚙</button>
+
+<div class="einstellungen" id="panel">
+  <div class="regler">
+    <label for="sGelb">Gelb ab Pegel</label><span class="wert" id="wGelb">45</span>
+    <input type="range" id="sGelb" min="5" max="95" value="45">
+  </div>
+  <div class="regler rot">
+    <label for="sRot">Rot ab Pegel</label><span class="wert" id="wRot">65</span>
+    <input type="range" id="sRot" min="5" max="98" value="65">
+  </div>
+  <div class="knopfreihe">
+    <button id="btnUebernehmenGelb">Jetzigen Pegel als Gelb setzen</button>
+    <button id="btnUebernehmenRot">Jetzigen Pegel als Rot setzen</button>
+    <button id="btnReset">Zähler zurücksetzen</button>
+    <button id="btnStandard">Schwellen auf Standard</button>
+    <button id="btnVollbild">Vollbild</button>
+    <button id="btnSchliessen">Fertig</button>
+  </div>
+</div>
+
+<div class="start" id="startschirm">
+  <h1>Lärmampel</h1>
+  <p>Das Mikrofon misst die Lautstärke im Raum. Aufgenommen wird nichts, gespeichert wird nichts.</p>
+  <button id="btnStart">Mikrofon starten</button>
+  <p class="fehler" id="fehler"></p>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var FENSTER_MS = 3000;      // Mittelungszeitraum
+  var HYSTERESE  = 4;         // Pegelpunkte, die es zum Zurückschalten braucht
+  var DB_MIN = -70, DB_MAX = -12;   // Abbildung dBFS -> Pegel 0..100
+
+  var schwelleGelb = 45, schwelleRot = 65;
+  var zustand = "gruen", zaehlerWert = 0;
+  var proben = [], analyser = null, puffer = null, audioCtx = null, wakeLock = null;
+
+  var el = {
+    lRot: document.getElementById("lRot"),
+    lGelb: document.getElementById("lGelb"),
+    lGruen: document.getElementById("lGruen"),
+    fuellung: document.getElementById("fuellung"),
+    spitze: document.getElementById("spitze"),
+    markeGelb: document.getElementById("markeGelb"),
+    markeRot: document.getElementById("markeRot"),
+    zaehler: document.getElementById("zaehler"),
+    hinweis: document.getElementById("hinweis"),
+    werte: document.getElementById("werte"),
+    panel: document.getElementById("panel"),
+    sGelb: document.getElementById("sGelb"),
+    sRot: document.getElementById("sRot"),
+    wGelb: document.getElementById("wGelb"),
+    wRot: document.getElementById("wRot"),
+    start: document.getElementById("startschirm"),
+    fehler: document.getElementById("fehler")
+  };
+
+  var letzterPegel = 0, letzterMoment = 0;
+
+  /* ---------- Audio ---------- */
+
+  async function starten(){
+    el.fehler.textContent = "";
+    try{
+      var stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false
+        }
+      });
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new Ctx();
+      if(audioCtx.state === "suspended"){ await audioCtx.resume(); }
+      var quelle = audioCtx.createMediaStreamSource(stream);
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 2048;
+      analyser.smoothingTimeConstant = 0;
+      quelle.connect(analyser);            // bewusst nicht an destination: sonst Rückkopplung
+      puffer = new Float32Array(analyser.fftSize);
+      el.start.style.display = "none";
+      bildschirmWachHalten();
+      requestAnimationFrame(schleife);
+    }catch(e){
+      var text = "Das Mikrofon ließ sich nicht öffnen.";
+      if(e && e.name === "NotAllowedError"){
+        text = "Der Zugriff auf das Mikrofon wurde abgelehnt. In den Einstellungen von Safari für diese Seite freigeben und die Seite neu laden.";
+      }else if(location.protocol !== "https:" && location.hostname !== "localhost"){
+        text = "Das Mikrofon braucht eine HTTPS-Verbindung. Die Seite lokal geöffnet oder über http:// aufgerufen funktioniert nicht.";
+      }
+      el.fehler.textContent = text;
+    }
+  }
+
+  function pegelAus(dbfs){
+    var p = (dbfs - DB_MIN) / (DB_MAX - DB_MIN) * 100;
+    return Math.max(0, Math.min(100, p));
+  }
+
+  function schleife(){
+    requestAnimationFrame(schleife);
+    if(!analyser) return;
+
+    analyser.getFloatTimeDomainData(puffer);
+    var summe = 0;
+    for(var i = 0; i < puffer.length; i++){ summe += puffer[i] * puffer[i]; }
+    var energie = summe / puffer.length;            // mittleres Quadrat
+
+    var jetzt = performance.now();
+    proben.push({ t: jetzt, e: energie });
+    while(proben.length && jetzt - proben[0].t > FENSTER_MS){ proben.shift(); }
+
+    var acc = 0;
+    for(var j = 0; j < proben.length; j++){ acc += proben[j].e; }
+    var mittelPegel  = pegelAus(10 * Math.log10(acc / proben.length + 1e-12));
+    var momentPegel  = pegelAus(10 * Math.log10(energie + 1e-12));
+
+    var bereit = proben.length > 1 && (jetzt - proben[0].t) > FENSTER_MS * 0.92;
+
+    letzterPegel = mittelPegel;
+    letzterMoment = momentPegel;
+
+    el.fuellung.style.height = mittelPegel.toFixed(1) + "%";
+    el.spitze.style.bottom = momentPegel.toFixed(1) + "%";
+    el.werte.textContent = "Pegel " + Math.round(mittelPegel) + " (jetzt " + Math.round(momentPegel) + ")";
+
+    if(bereit){
+      zustandFortschreiben(mittelPegel);
+      el.hinweis.textContent = hinweisText();
+    }else{
+      el.hinweis.textContent = "Die Ampel misst noch.";
+      lampenSetzen("gruen");
+    }
+  }
+
+  function hinweisText(){
+    if(zustand === "rot")  return "Zu laut. Der Zähler ist hochgegangen.";
+    if(zustand === "gelb") return "Es wird lauter. Noch geht es.";
+    return "Gute Lautstärke.";
+  }
+
+  function zustandFortschreiben(pegel){
+    var vorher = zustand;
+    if(zustand === "gruen"){
+      if(pegel >= schwelleRot) zustand = "rot";
+      else if(pegel >= schwelleGelb) zustand = "gelb";
+    }else if(zustand === "gelb"){
+      if(pegel >= schwelleRot) zustand = "rot";
+      else if(pegel < schwelleGelb - HYSTERESE) zustand = "gruen";
+    }else{
+      if(pegel < schwelleRot - HYSTERESE){
+        zustand = (pegel >= schwelleGelb) ? "gelb" : "gruen";
+      }
+    }
+    if(zustand !== vorher){
+      lampenSetzen(zustand);
+      if(zustand === "rot"){ zaehlerHoch(); }
+    }
+  }
+
+  function lampenSetzen(z){
+    el.lRot.classList.toggle("an", z === "rot");
+    el.lGelb.classList.toggle("an", z === "gelb");
+    el.lGruen.classList.toggle("an", z === "gruen");
+  }
+
+  function zaehlerHoch(){
+    zaehlerWert++;
+    el.zaehler.textContent = zaehlerWert;
+    el.zaehler.classList.remove("puls");
+    void el.zaehler.offsetWidth;
+    el.zaehler.classList.add("puls");
+  }
+
+  /* ---------- Schwellen ---------- */
+
+  var SPEICHER = "laermampel.schwellen";
+
+  function grenzen(wert, standard){
+    var z = Number(wert);
+    return (isFinite(z) && z >= 5 && z <= 98) ? z : standard;
+  }
+
+  function schwellenLaden(){
+    try{
+      var roh = window.localStorage.getItem(SPEICHER);
+      if(!roh) return;
+      var d = JSON.parse(roh);
+      schwelleGelb = grenzen(d.gelb, schwelleGelb);
+      schwelleRot  = grenzen(d.rot,  schwelleRot);
+    }catch(e){ /* Privatmodus oder lokal geöffnet: dann eben Standardwerte */ }
+  }
+
+  function schwellenSichern(){
+    try{
+      window.localStorage.setItem(SPEICHER, JSON.stringify({
+        gelb: schwelleGelb, rot: schwelleRot
+      }));
+    }catch(e){ /* Speichern ist optional, die Ampel läuft weiter */ }
+  }
+
+  function schwellenAnwenden(){
+    if(schwelleRot <= schwelleGelb + 2){ schwelleRot = Math.min(98, schwelleGelb + 3); }
+    el.sGelb.value = schwelleGelb;
+    el.sRot.value = schwelleRot;
+    el.wGelb.textContent = Math.round(schwelleGelb);
+    el.wRot.textContent = Math.round(schwelleRot);
+    el.markeGelb.style.bottom = "calc(" + schwelleGelb + "% - 1px)";
+    el.markeRot.style.bottom  = "calc(" + schwelleRot  + "% - 1px)";
+    schwellenSichern();
+  }
+
+  function schwellenStandard(){
+    schwelleGelb = 45; schwelleRot = 65;
+    schwellenAnwenden();
+  }
+
+  el.sGelb.addEventListener("input", function(){
+    schwelleGelb = Number(el.sGelb.value);
+    if(schwelleGelb >= schwelleRot - 2){ schwelleRot = Math.min(98, schwelleGelb + 3); }
+    schwellenAnwenden();
+  });
+  el.sRot.addEventListener("input", function(){
+    schwelleRot = Number(el.sRot.value);
+    if(schwelleRot <= schwelleGelb + 2){ schwelleGelb = Math.max(5, schwelleRot - 3); }
+    schwellenAnwenden();
+  });
+
+  document.getElementById("btnUebernehmenGelb").addEventListener("click", function(){
+    schwelleGelb = Math.round(letzterPegel); schwellenAnwenden();
+  });
+  document.getElementById("btnUebernehmenRot").addEventListener("click", function(){
+    schwelleRot = Math.round(letzterPegel); schwellenAnwenden();
+  });
+  document.getElementById("btnReset").addEventListener("click", function(){
+    zaehlerWert = 0; el.zaehler.textContent = "0";
+  });
+  document.getElementById("btnStandard").addEventListener("click", schwellenStandard);
+
+  /* ---------- Oberfläche ---------- */
+
+  document.getElementById("btnStart").addEventListener("click", starten);
+  document.getElementById("btnEinstellungen").addEventListener("click", function(){
+    el.panel.classList.toggle("offen");
+  });
+  document.getElementById("btnSchliessen").addEventListener("click", function(){
+    el.panel.classList.remove("offen");
+  });
+  document.getElementById("btnVollbild").addEventListener("click", function(){
+    var d = document.documentElement;
+    if(document.fullscreenElement || document.webkitFullscreenElement){
+      (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    }else if(d.requestFullscreen){ d.requestFullscreen(); }
+    else if(d.webkitRequestFullscreen){ d.webkitRequestFullscreen(); }
+  });
+
+  async function bildschirmWachHalten(){
+    try{
+      if("wakeLock" in navigator){
+        wakeLock = await navigator.wakeLock.request("screen");
+      }
+    }catch(e){ /* ohne Wake Lock läuft die Ampel trotzdem */ }
+  }
+
+  document.addEventListener("visibilitychange", function(){
+    if(document.visibilityState === "visible"){
+      if(audioCtx && audioCtx.state === "suspended"){ audioCtx.resume(); }
+      if(analyser){ proben.length = 0; bildschirmWachHalten(); }
+    }
+  });
+
+  schwellenLaden();
+  schwellenAnwenden();
+  lampenSetzen("gruen");
+})();
+</script>
+</body>
+</html>
